@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  cpu:
+    name: CPU build and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DNB_USE_CUDA=OFF
+      - run: cmake --build build -j
+      - run: ctest --test-dir build --output-on-failure
+
+  cuda:
+    name: CUDA build (nvcc)
+    runs-on: ubuntu-latest
+    container: nvidia/cuda:12.4.1-devel-ubuntu22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: apt-get update && apt-get install -y --no-install-recommends cmake g++ make
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build -j
+      - name: Test (GPU tests are skipped, hosted runners have no GPU)
+        run: ctest --test-dir build --output-on-failure
